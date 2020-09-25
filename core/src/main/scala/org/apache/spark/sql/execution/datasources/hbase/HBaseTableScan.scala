@@ -26,9 +26,10 @@ import java.util.ArrayList
 import org.apache.hadoop.hbase.CellUtil
 import org.apache.hadoop.hbase.client._
 import org.apache.hadoop.hbase.filter.{Filter => HFilter}
-import org.apache.spark._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
+import org.apache.spark.{Partition,TaskContext, SparkEnv}
+import org.apache.spark.util.TaskCompletionListener
 import org.apache.spark.sql.execution.datasources.hbase
 import org.apache.spark.sql.execution.datasources.hbase.HBaseResources._
 import org.apache.spark.sql.execution.datasources.hbase.types.{SHCDataType, SHCDataTypeFactory}
@@ -51,7 +52,7 @@ private[hbase] case class HBaseScanPartition(
     scanRanges: Array[ScanRange[Array[Byte]]],
     tf: SerializedTypedFilter) extends Partition
 
-private[hbase] class HBaseTableScanRDD(
+private[hbase] class HBaseTableScanRDD (
     relation: HBaseRelation,
     requiredColumns: Array[String],
     filters: Array[Filter]) extends RDD[Row](relation.sqlContext.sparkContext, Nil) {
@@ -451,6 +452,8 @@ private[hbase] class HBaseTableScanRDD(
     rddResources.release()
   }
 
+  
+
   override def compute(split: Partition, context: TaskContext): Iterator[Row] = {
     SHCCredentialsManager.processShcToken(serializedToken)
     val ord = hbase.ord//implicitly[Ordering[HBaseType]]
@@ -461,7 +464,12 @@ private[hbase] class HBaseTableScanRDD(
       x.start.isDefined && x.end.isDefined && ScanRange.compare(x.start, x.end, ord) == 0
     }
     logDebug(s"${g.length} gets, ${s.length} scans")
-    context.addTaskCompletionListener(context => close())
+    //onTaskCompletion(context)
+    context.addTaskCompletionListener( new TaskCompletionListener{
+      def onTaskCompletion(context: TaskContext){
+        close()
+      }
+    } )
     val tableResource = TableResource(relation)
     val filter = TypedFilter.fromSerializedTypedFilter(partition.tf).filter
     val gIt: Iterator[Result] = {

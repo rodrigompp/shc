@@ -32,7 +32,7 @@ class PrimitiveType(f:Option[Field] = None) extends SHCDataType {
     case IntegerType => Bytes.toInt(src)
     case LongType => Bytes.toLong(src)
     case ShortType => Bytes.toShort(src)
-    case StringType => toUTF8String(src, src.length)
+    case StringType => Bytes.toString(src)/// This instruction remove error with UTF8StringType in Spark 3.0.x
     case BinaryType => src
     // this block MapType in future if connector want to support it
     case m: MapType => fromBytes(src, m.valueType)

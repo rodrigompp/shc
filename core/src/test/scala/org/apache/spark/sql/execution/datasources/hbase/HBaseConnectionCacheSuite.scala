@@ -54,9 +54,9 @@ class ConnectionMocker extends Connection {
 
   def getConfiguration: Configuration = null
 
-  def getTable(tableName: TableName): Table = null
+  override def getTable(tableName: TableName): Table = null
 
-  def getTable(tableName: TableName, pool: ExecutorService): Table = null
+  override def getTable(tableName: TableName, pool: ExecutorService): Table = null
 
   def getBufferedMutator(params: BufferedMutatorParams): BufferedMutator = null
 
